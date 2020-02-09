@@ -1,10 +1,13 @@
 import urllib.request
 import re
 
+# Regex to get the total number of pages
 rePages = re.compile(r'>\d*</a>')
+# Regex to get the team names involved in a trade
 reTeams = re.compile(r'<strong>.+ acquire<\/strong>')
 teamNames = []
 
+# Read team names from textfile
 with open('teams.txt') as ts:
         for n in ts:
             n.strip()
@@ -37,50 +40,32 @@ team_url = "http://nhltradetracker.com/user/trade_list_by_season_team/{}/{}/{}"
 all_team_url = "http://nhltradetracker.com/user/trade_list_by_team/{}}/1"
 
 #gets all the trades for the team and year specified
-#if no team is specified, all trades for all teams will be gathered in the specified year
-#if no year is specified, all trades from 2000 onward will be gathered for the specified team
-#if no year AND no team is specifed, all trades for all teams from 2000 onward will be gathered
-def get_team_trades(year = None, teamName = None):
-    teams = []
-    years = []
+def get_team_trades(year, teamName):
+    print("Called with arguemnts", year, teamName)
     teamTrades = []
-    if (teamName == None):
-        for i in set(teamNames).difference(defunct):
-            teams.append(i.strip())
-    else:
-        teams.append(teamName.strip().replace(' ', '_'))
-    
-    if (year == None):
-        for i in range(2000, 2020):
-            years.append(str(i) + "-" + str(i+1))
-    else:
-        years.append(year)
-    for y in years:
-        for t in teams:
+    pages = get_num_pages(team_url.format(teamName, year, 1))
+    if (pages == 0): pages = 1
 
-            pages = get_num_pages(team_url.format(t, y, 1))
-            if (pages == 0): pages = 1
+    for i in range(1, pages + 1):
+        with urllib.request.urlopen(team_url.format(teamName, year, i)) as data:
+            html = data.read()
 
-            for i in range(1, pages + 1):
-                with urllib.request.urlopen(team_url.format(t, y, i)) as data:
-                    html = data.read()
+        for groups in re.findall(reTeams, html.decode()):
+            line = re.sub(r'(acquire)|(<(\/)?strong>)', '', groups)
+            line.strip()
+            if (line not in defunct):
 
-                for groups in re.findall(reTeams, html.decode()):
-                    line = re.sub(r'(acquire)|(<(\/)?strong>)', '', groups)
-                    line.strip()
-                    if (line not in defunct):
+                if line in update:
+                    line = update[line]
 
-                        if line in update:
-                            line = update[line]
+                teamTrades.append(line)
+    if (teamTrades):
+        with open('Trades/' + teamName + ' ' + str(year) + '.csv', 'w') as f:
+            print("Reading {} for {}\n".format(teamName,year))
+            for team in teamTrades:
+                if team.strip().replace(' ', '_') != teamName.strip():
+                    f.write(team + '\n')
 
-                        teamTrades.append(line)
-            if (teamTrades):
-                with open('Trades/' + t + ' ' + str(y) + '.csv', 'w') as f:
-                    print("Reading {} for {}\n".format(t,y))
-                    for team in teamTrades:
-                        if team.strip().replace(' ', '_') != t.strip():
-                            f.write(team + '\n')
-            teamTrades[:] = [] # empties the trade list for the next loop
 
 #gets all the trades for the year specified
 #output file is a csv with all tuples being the trading pairs
@@ -116,15 +101,5 @@ def get_num_pages(url):
                 pageMax = int(pages)
     return pageMax
 
-def menu():
-    print("Please select an option:")
-    print("1: 1 year")
-    print("2: Range of years")
-    print("3: Team Menu")
-
 if __name__ == "__main__":
-    
-    # menu()
-    # get_year_trades("2018-19")
-    # get_team_trades("2018-19")
-    get_team_trades(None, "Toronto Maples Leafs")
+    get_team_trades("2000-01", "Anaheim_Ducks")
