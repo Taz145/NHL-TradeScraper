@@ -7,14 +7,6 @@ rePages = re.compile(r'>\d*</a>')
 reTeams = re.compile(r'<strong>.+ acquire<\/strong>')
 teamNames = []
 
-# Read team names from textfile
-with open('teams.txt') as ts:
-        for n in ts:
-            n.strip()
-            n = n.replace('\n', '')
-            n = n.replace('\r', '')
-            teamNames.append(n)
-
 # teams that no longer exist and will be skipped in counting trades
 #TODO add filters for that this list IS used when valid years are given
 defunct = {"Hamilton_Tigers", "Montreal_Maroons", "New York_Americans",
@@ -39,9 +31,20 @@ url = "http://nhltradetracker.com/user/trade_list_by_season/{}/{}"
 team_url = "http://nhltradetracker.com/user/trade_list_by_season_team/{}/{}/{}"
 all_team_url = "http://nhltradetracker.com/user/trade_list_by_team/{}}/1"
 
+def get_team_names():
+    t = []
+    with open('teams.txt') as ts:
+            for n in ts:
+                n.strip()
+                n = n.replace('\n', '')
+                n = n.replace('\r', '')
+                t.append(n)
+    return t
+
 #gets all the trades for the team and year specified
 def get_team_trades(year, teamName):
     print("Called with arguemnts", year, teamName)
+
     teamTrades = []
     pages = get_num_pages(team_url.format(teamName, year, 1))
     if (pages == 0): pages = 1
@@ -102,4 +105,5 @@ def get_num_pages(url):
     return pageMax
 
 if __name__ == "__main__":
+    teamNames = get_team_names()
     get_team_trades("2000-01", "Anaheim_Ducks")
