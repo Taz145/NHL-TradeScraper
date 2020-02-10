@@ -43,28 +43,31 @@ def get_team_names():
 
 #gets all the trades for the team and year specified
 def get_team_trades(year, teamName):
-    print("Called with arguemnts", year, teamName)
-
     teamTrades = []
-    pages = get_num_pages(team_url.format(teamName, year, 1))
-    if (pages == 0): pages = 1
+    for y in year:
+        print("Getting trades for {} in {}".format(teamName, y))
+        pages = get_num_pages(team_url.format(teamName, y, 1))
+        if (pages == 0): pages = 1
 
-    for i in range(1, pages + 1):
-        with urllib.request.urlopen(team_url.format(teamName, year, i)) as data:
-            html = data.read()
+        for i in range(1, pages + 1):
+            with urllib.request.urlopen(team_url.format(teamName, y, i)) as data:
+                html = data.read()
 
-        for groups in re.findall(reTeams, html.decode()):
-            line = re.sub(r'(acquire)|(<(\/)?strong>)', '', groups)
-            line.strip()
-            if (line not in defunct):
+            for groups in re.findall(reTeams, html.decode()):
+                line = re.sub(r'(acquire)|(<(\/)?strong>)', '', groups)
+                line.strip()
+                if (line not in defunct):
 
-                if line in update:
-                    line = update[line]
+                    if line in update:
+                        line = update[line]
 
-                teamTrades.append(line)
+                    teamTrades.append(line)
     if (teamTrades):
-        with open('Trades/' + teamName + ' ' + str(year) + '.csv', 'w') as f:
-            print("Reading {} for {}\n".format(teamName,year))
+        if len(year) > 1:
+            filename = 'Trades/' + teamName + ' ' + year[0] + '-' + year[len(year)-1] + '.csv'
+        else:
+            filename = 'Trades/' + teamName + ' ' + year[0] + '.csv'
+        with open(filename, 'w') as f:
             for team in teamTrades:
                 if team.strip().replace(' ', '_') != teamName.strip():
                     f.write(team + '\n')
@@ -103,7 +106,3 @@ def get_num_pages(url):
             if pageMax < int(pages):
                 pageMax = int(pages)
     return pageMax
-
-if __name__ == "__main__":
-    teamNames = get_team_names()
-    get_team_trades("2000-01", "Anaheim_Ducks")
